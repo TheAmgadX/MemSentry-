@@ -23,6 +23,7 @@ include_directories(
 add_library(
     MemSentry STATIC
     src/mem_sentry.cc
+    src/heap.cc
 )
 
 # ==========================================
@@ -30,6 +31,7 @@ add_library(
 # ==========================================
 add_executable(application
     examples/main.cc
+    src/heap.cc
 )
 
 target_link_libraries(

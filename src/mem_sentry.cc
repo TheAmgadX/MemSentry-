@@ -13,9 +13,9 @@ void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
 
     MEM_SENTRY::alloc_header::AllocHeader *pHeader = (MEM_SENTRY::alloc_header::AllocHeader *) pMem;
 
-    pHeader->pHeap = pHeap;
-    pHeader->iSize = size;
-    pHeader->iSignature = MEM_SENTRY::constants::MEMSYSTEM_SIGNATURE;
+    pHeader->p_Heap = pHeap;
+    pHeader->m_Size = size;
+    pHeader->m_Signature = MEM_SENTRY::constants::MEMSYSTEM_SIGNATURE;
 
     pHeap->AddAllocation(size);
 
@@ -37,16 +37,16 @@ void operator delete (void *pMem) {
     );
 
     // to make sure we don't free data that is not allocated by our memory manager.
-    assert(pHeader->iSignature == MEM_SENTRY::constants::MEMSYSTEM_SIGNATURE);
+    assert(pHeader->m_Signature == MEM_SENTRY::constants::MEMSYSTEM_SIGNATURE);
 
-    int* pEndMarker = (int*) ((char *)pMem + pHeader->iSize);
+    int* pEndMarker = (int*) ((char *)pMem + pHeader->m_Size);
 
     /*
         make sure the end marker is with our signature to avoid free beyond the array.
     */ 
     assert(*pEndMarker == MEM_SENTRY::constants::MEMSYSTEM_ENDMARKER); 
 
-    pHeader->pHeap->RemoveAlloc(pHeader->iSize);
+    pHeader->p_Heap->RemoveAlloc(pHeader->m_Size);
 
     free(pHeader);
 }
