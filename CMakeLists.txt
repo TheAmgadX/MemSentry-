@@ -11,11 +11,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ==========================================
-# 2. Include Paths
+# 2. Define the Remote Control (Must be near top)
 # ==========================================
-include_directories(
-    ${PROJECT_SOURCE_DIR}/include
-)
+# This creates the switch. Default is ON.
+option(MEM_SENTRY_ENABLE "Enable memory tracking features" ON)
 
 # ==========================================
 # 3. Build the Library (MemSentry)
@@ -26,15 +25,27 @@ add_library(
     src/heap.cc
 )
 
+target_include_directories(MemSentry PUBLIC 
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+# APPLY THE SWITCH:
+if(MEM_SENTRY_ENABLE)
+    message(STATUS "MemSentry Tracking: ON")
+    target_compile_definitions(MemSentry PUBLIC MEM_SENTRY_ENABLE=1)
+else()
+    message(STATUS "MemSentry Tracking: OFF")
+    target_compile_definitions(MemSentry PUBLIC MEM_SENTRY_ENABLE=0)
+endif()
+
 # ==========================================
 # 4. Build the Example App (Client)
 # ==========================================
 add_executable(application
     examples/main.cc
-    src/heap.cc
 )
 
 target_link_libraries(
     application
-    PRIVATE MemSentry
+    PRIVATE MemSentry 
 )

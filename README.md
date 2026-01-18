@@ -6,13 +6,26 @@ MemSentry is a lightweight library that intercepts memory allocations to organiz
 
 ## ✨ Features
 
-* **Per-Class Heap Assignment:** Route different classes (e.g., `Audio`, `Physics`, `AI`) to their own dedicated memory heaps.
-* **Automatic Leak Detection:** Reports total bytes remaining in every heap.
-* **Zero-boilerplate Interface:** Simply inherit from `ISentry<T>` and you are done.
+- **Per-Class Heap Assignment:** Route different classes (e.g., `Audio`, `Physics`, `AI`) to their own dedicated memory heaps.
+- **Automatic Leak Detection:** Reports total bytes remaining in every heap.
+- **Zero-boilerplate Interface:** Simply inherit from `ISentry<T>` and you are done.
 
 ## 🚀 Usage
 
-### 1. Define Your Class
+### 1. Basic Usage (Global Tracking)
+
+MemSentry automatically overrides the global `new` and `delete`. Any standard allocation is tracked in the `DefaultHeap` automatically.
+
+```cpp
+// No setup required!
+int* numbers = new int[100];
+delete[] numbers; // Automatically tracked and checked for leaks
+```
+
+### 2. Advanced usage
+
+#### 1. Define Your Class
+
 Inherit from `MEM_SENTRY::sentry::ISentry<YourClass>`. This automatically hooks up the memory manager.
 
 ```cpp
@@ -26,7 +39,8 @@ public:
 };
 ```
 
-### 2. Configure Heaps in `main()`
+#### 2. Configure Heaps in `main()`
+
 Create your heaps and assign them to your classes before allocation.
 
 ```cpp
@@ -43,7 +57,7 @@ int main() {
     Enemy::setHeap(enemyHeap);
 
     // 3. Allocate (Automatically goes to Enemy_Heap)
-    Enemy* grunt = new Enemy(); 
+    Enemy* grunt = new Enemy();
 
     // 4. Cleanup
     delete grunt;      // Tracks freeing
@@ -53,7 +67,7 @@ int main() {
 }
 ```
 
-## 📊 Sample Output
+### 📊 Sample Output
 
 MemSentry provides detailed logging of allocation and deallocation events.
 
@@ -84,4 +98,58 @@ Current total size is: 0 bytes on heap: Enemy_Heap
 Freeing 104 bytes from heap: DefaultHeap
 Current total size is: 0 bytes on heap: DefaultHeap
 -----------------
+```
+
+## MemSentry Integration Guide
+
+### 1. How to Integrate
+
+Add **MemSentry** to your project by including it in your `CMakeLists.txt`.
+
+#### CMake
+
+```cmake
+# 1. Add the subdirectory (ensure the folder name matches)
+add_subdirectory(mem_sentry)
+
+# 2. Link your executable to the library
+add_executable(MyGame main.cpp)
+target_link_libraries(MyGame PRIVATE MemSentry)
+```
+
+---
+
+### 2. Configuration (The Remote Control)
+
+You can control whether MemSentry is active or disabled (zero-overhead) without changing your code.
+
+#### Option A: The "Temporary" Way (Command Line)
+
+Use this when you want to quickly switch modes for a specific build.
+
+Enable (Default):
+
+```bash
+cmake ..
+```
+
+Disable (Zero Overhead):
+
+```bash
+cmake .. -DMEM_SENTRY_ENABLE=OFF
+```
+
+---
+
+#### Option B: The "Permanent" Way (CMake)
+
+Use this if you want to hard-code the setting for your project (e.g. recommended OFF for Release builds).
+
+Put this before `add_subdirectory(mem_sentry)`:
+
+```cmake
+# Force MemSentry OFF
+set(MEM_SENTRY_ENABLE OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(mem_sentry)
 ```

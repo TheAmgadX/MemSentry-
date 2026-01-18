@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <cstring>
-
+#include "mem_sentry/alloc_header.h"
 
 namespace MEM_SENTRY::heap {       
     class Heap {

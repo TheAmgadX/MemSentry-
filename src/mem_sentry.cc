@@ -7,6 +7,7 @@
 //? _________________________ GLOBAL new/delete OPERATORS _________________________
 
 void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
+#if MEM_SENTRY_ENABLE
     size_t iRequestedBytes = size + sizeof(MEM_SENTRY::alloc_header::AllocHeader) + sizeof(int);
 
     char *pMem = (char *)malloc(iRequestedBytes);
@@ -26,9 +27,14 @@ void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
     *pEndMarker = MEM_SENTRY::constants::MEMSYSTEM_ENDMARKER;
 
     return pStartBlock;
+#else
+    return malloc(size);
+#endif
 }
 
 void operator delete (void *pMem) {
+#if MEM_SENTRY_ENABLE
+
     if (!pMem) return;
     
     // Backtrack to find the header
@@ -49,6 +55,9 @@ void operator delete (void *pMem) {
     pHeader->p_Heap->RemoveAlloc(pHeader->m_Size);
 
     free(pHeader);
+#else
+    free(pMem);
+#endif
 }
 
 // Standard new implementation using default heap

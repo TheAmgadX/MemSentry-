@@ -3,7 +3,6 @@
 #include "mem_sentry/heap.h"
 #include "mem_sentry/alloc_header.h"
 
-
 void MEM_SENTRY::heap::Heap::AddAllocation(int size) {
     std::cout << "-----------------\n";
     std::cout << "Allocating " << size << " bytes on heap: " << m_name << "\n";
