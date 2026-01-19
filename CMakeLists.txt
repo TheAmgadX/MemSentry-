@@ -5,19 +5,19 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # ==========================================
-# 1. Output Configuration
+#  Output Configuration
 # ==========================================
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ==========================================
-# 2. Define the Remote Control (Must be near top)
+#  Define the Remote Control (Must be near top)
 # ==========================================
 # This creates the switch. Default is ON.
 option(MEM_SENTRY_ENABLE "Enable memory tracking features" ON)
 
 # ==========================================
-# 3. Build the Library (MemSentry)
+#  Build the Library (MemSentry)
 # ==========================================
 add_library(
     MemSentry STATIC
@@ -39,7 +39,7 @@ else()
 endif()
 
 # ==========================================
-# 4. Build the Example App (Client)
+#  Build the Example App (Client)
 # ==========================================
 add_executable(application
     examples/main.cc
@@ -49,3 +49,6 @@ target_link_libraries(
     application
     PRIVATE MemSentry 
 )
+
+# Add tests
+add_subdirectory(tests)

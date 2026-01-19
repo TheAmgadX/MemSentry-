@@ -13,13 +13,14 @@ void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
     char *pMem = (char *)malloc(iRequestedBytes);
 
     MEM_SENTRY::alloc_header::AllocHeader *pHeader = (MEM_SENTRY::alloc_header::AllocHeader *) pMem;
-
+    
     pHeader->p_Heap = pHeap;
     pHeader->m_Size = size;
     pHeader->m_Signature = MEM_SENTRY::constants::MEMSYSTEM_SIGNATURE;
-
-    pHeap->AddAllocation(size);
-
+    pHeader->m_AllocId = pHeap->GetNextId();
+    
+    pHeap->AddAllocation(pHeader);
+    
     void *pStartBlock = pMem + sizeof(MEM_SENTRY::alloc_header::AllocHeader);
     
     int *pEndMarker = (int*) ((char*) pStartBlock + size);
@@ -52,7 +53,7 @@ void operator delete (void *pMem) {
     */ 
     assert(*pEndMarker == MEM_SENTRY::constants::MEMSYSTEM_ENDMARKER); 
 
-    pHeader->p_Heap->RemoveAlloc(pHeader->m_Size);
+    pHeader->p_Heap->RemoveAlloc(pHeader);
 
     free(pHeader);
 #else
