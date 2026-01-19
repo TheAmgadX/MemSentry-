@@ -86,7 +86,8 @@ int MEM_SENTRY::heap::Heap::CountAllocations() const noexcept {
 }
 
 void MEM_SENTRY::heap::Heap::AddAllocation(alloc_header::AllocHeader* alloc) {
-    int size = alloc->m_Size;
+    int size = alloc->m_Size + alloc->m_Alignment;
+    
     std::cout << "-----------------\n";
     std::cout << "Allocating " << size << " bytes on heap: " << m_name << "\n";
     m_total += size;
@@ -99,7 +100,8 @@ void MEM_SENTRY::heap::Heap::AddAllocation(alloc_header::AllocHeader* alloc) {
 }
 
 void MEM_SENTRY::heap::Heap::RemoveAlloc(alloc_header::AllocHeader* alloc) {
-    int size = alloc->m_Size;
+    int size = alloc->m_Size + alloc->m_Alignment;
+    
     std::cout << "-----------------\n";
     std::cout << "Freeing " << size << " bytes from heap: " << m_name << "\n";
     m_total -= size;
@@ -113,10 +115,11 @@ void MEM_SENTRY::heap::Heap::RemoveAlloc(alloc_header::AllocHeader* alloc) {
 
 void MEM_SENTRY::heap::Heap::printAlloc(alloc_header::AllocHeader* p_Alloc, int totalMemoryToThisPoint){
     std::printf("---------------------------------\n");
-    std::printf("Heap Name:     %s\n",     p_Alloc->p_Heap->m_name);
+    std::printf("Heap Name:     %s\n",     p_Alloc->p_Heap->GetName());
     std::printf("Allocation Id: %d\n",     p_Alloc->m_AllocId);
     std::printf("Signature:     0x%X\n",   p_Alloc->m_Signature);
     std::printf("Size:          %d bytes\n", p_Alloc->m_Size);
+    std::printf("Alignment:     %d bytes\n", p_Alloc->m_Alignment);
     std::printf("Total Memory:  %d bytes\n", totalMemoryToThisPoint);
     std::printf("---------------------------------\n");
 }
