@@ -73,7 +73,9 @@ bool MEM_SENTRY::heap::Heap::removeAllocLL(alloc_header::AllocHeader* alloc){
     return true;
 }
 
-int MEM_SENTRY::heap::Heap::CountAllocations() const noexcept {
+int MEM_SENTRY::heap::Heap::CountAllocations() noexcept {
+    std::lock_guard<std::mutex> lock(m_llMutex);
+
     int count = 0;
     alloc_header::AllocHeader* tmp = p_HeadList;
     
@@ -86,6 +88,8 @@ int MEM_SENTRY::heap::Heap::CountAllocations() const noexcept {
 }
 
 void MEM_SENTRY::heap::Heap::AddAllocation(alloc_header::AllocHeader* alloc) {
+    std::lock_guard<std::mutex> lock(m_llMutex);
+
     int size = alloc->m_Size + alloc->m_Alignment;
     
     std::cout << "-----------------\n";
@@ -100,6 +104,8 @@ void MEM_SENTRY::heap::Heap::AddAllocation(alloc_header::AllocHeader* alloc) {
 }
 
 void MEM_SENTRY::heap::Heap::RemoveAlloc(alloc_header::AllocHeader* alloc) {
+    std::lock_guard<std::mutex> lock(m_llMutex);
+
     int size = alloc->m_Size + alloc->m_Alignment;
     
     std::cout << "-----------------\n";
@@ -125,6 +131,8 @@ void MEM_SENTRY::heap::Heap::printAlloc(alloc_header::AllocHeader* p_Alloc, int 
 }
 
 void MEM_SENTRY::heap::Heap::ReportMemory(int bookMark1, int bookMark2){
+    std::lock_guard<std::mutex> lock(m_llMutex);
+
     alloc_header::AllocHeader* tmp = p_HeadList;
 
     while(tmp && tmp->m_AllocId < bookMark1){

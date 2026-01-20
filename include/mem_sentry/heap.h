@@ -1,6 +1,9 @@
 #pragma once
 #include <iostream>
 #include <cstring>
+#include <atomic>
+#include <mutex>
+
 #include "mem_sentry/alloc_header.h"
 
 namespace MEM_SENTRY::heap {       
@@ -23,13 +26,20 @@ namespace MEM_SENTRY::heap {
         int m_total;
         
         /** @brief Counter to generate unique IDs for allocations. */
-        int m_NextAllocId;
+        std::atomic<int> m_NextAllocId;
 
         /** @brief Pointer to the first allocation in the tracking list. */
         alloc_header::AllocHeader* p_HeadList;
 
         /** @brief Pointer to the last allocation in the tracking list. */
         alloc_header::AllocHeader* p_TailList;
+
+        /**
+         * @brief linked list mutex.
+         * 
+         * used to make sure the heap list is thread safe.
+         */
+        std::mutex m_llMutex;
 
         /**
          * @brief Internal helper to print details of a specific allocation.
@@ -77,7 +87,9 @@ namespace MEM_SENTRY::heap {
          * @brief return a unique Id for a new allocation and increments the counter.
          * @return int The new Allocation Id.
          */
-        int GetNextId() { return m_NextAllocId++; }
+        int GetNextId() { 
+            return m_NextAllocId.fetch_add(1, std::memory_order_relaxed); 
+        }
 
         /**
          * @brief Returns the current total bytes allocated on this heap.
@@ -87,7 +99,7 @@ namespace MEM_SENTRY::heap {
         /**
          * @brief Count active allocations tracked by this heap.
          */
-        int CountAllocations() const noexcept;
+        int CountAllocations() noexcept;
 
         /**
          * @brief Registers a new allocation with this heap.

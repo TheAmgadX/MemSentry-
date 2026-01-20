@@ -13,3 +13,5 @@
 - Hierarchical Heaps: Implement a hierarchical heap system using a graph-based representation. []
 
 - add all needed overridden `new`, `delete` operators to make sure the user won't allocate something out of the heap, also update the ISentry. [+]
+
+- add memory pools, Chained Buffer Design with atomic operations. []

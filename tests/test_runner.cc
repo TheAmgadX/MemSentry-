@@ -109,6 +109,8 @@ public:
         // --- Reporting ---
         TestInteractiveLeakReport();
 
+        TestMultiThreadedAllocations();
+
         std::cout << "\n=============================================\n";
         std::cout << "    \033[32mALL TESTS PASSED SUCCESSFULLY\033[0m\n";
         std::cout << "=============================================\n";
@@ -508,63 +510,63 @@ private:
         ASSERT_EQ(GetCount(heap), start);
     }
 
-        static void TestAlignedHeapOperator() {
-        LOG_TEST("TestAlignedHeapOperator (new(alignment, Heap*))");
-        Heap explicitHeap("ExplicitAlignedHeap");
+    static void TestAlignedHeapOperator() {
+    LOG_TEST("TestAlignedHeapOperator (new(alignment, Heap*))");
+    Heap explicitHeap("ExplicitAlignedHeap");
 
-        size_t start = GetCount(&explicitHeap);
+    size_t start = GetCount(&explicitHeap);
 
-        AlignedDeepData* p = new (std::align_val_t(128), &explicitHeap) AlignedDeepData();
-        ASSERT_TRUE(p != nullptr);
-        uintptr_t addr = reinterpret_cast<uintptr_t>(p);
-        ASSERT_TRUE(addr % 128 == 0);
+    AlignedDeepData* p = new (std::align_val_t(128), &explicitHeap) AlignedDeepData();
+    ASSERT_TRUE(p != nullptr);
+    uintptr_t addr = reinterpret_cast<uintptr_t>(p);
+    ASSERT_TRUE(addr % 128 == 0);
 
-    #if MEM_SENTRY_ENABLE
-        ASSERT_EQ(GetCount(&explicitHeap), start + 1);
-        ASSERT_EQ(GetCount(HeapFactory::GetDefaultHeap()), 0);
-    #endif
+#if MEM_SENTRY_ENABLE
+    ASSERT_EQ(GetCount(&explicitHeap), start + 1);
+    ASSERT_EQ(GetCount(HeapFactory::GetDefaultHeap()), 0);
+#endif
 
-        delete p;
+    delete p;
 
-    #if MEM_SENTRY_ENABLE
-        ASSERT_EQ(GetCount(&explicitHeap), start);
-    #endif
-        }
+#if MEM_SENTRY_ENABLE
+    ASSERT_EQ(GetCount(&explicitHeap), start);
+#endif
+    }
 
-        static void TestNothrowAlignedPlacement() {
-        LOG_TEST("TestNothrowAlignedPlacement (aligned nothrow new)");
-        Heap* heap = HeapFactory::GetDefaultHeap();
-        size_t start = GetCount(heap);
+    static void TestNothrowAlignedPlacement() {
+    LOG_TEST("TestNothrowAlignedPlacement (aligned nothrow new)");
+    Heap* heap = HeapFactory::GetDefaultHeap();
+    size_t start = GetCount(heap);
 
-        AlignedDeepData* p = new (std::align_val_t(128), std::nothrow) AlignedDeepData();
-        ASSERT_TRUE(p != nullptr);
-        uintptr_t addr = reinterpret_cast<uintptr_t>(p);
-        ASSERT_TRUE(addr % 128 == 0);
+    AlignedDeepData* p = new (std::align_val_t(128), std::nothrow) AlignedDeepData();
+    ASSERT_TRUE(p != nullptr);
+    uintptr_t addr = reinterpret_cast<uintptr_t>(p);
+    ASSERT_TRUE(addr % 128 == 0);
 
-    #if MEM_SENTRY_ENABLE
-        ASSERT_EQ(GetCount(heap), start + 1);
-    #endif
+#if MEM_SENTRY_ENABLE
+    ASSERT_EQ(GetCount(heap), start + 1);
+#endif
 
-        delete p;
-        ASSERT_EQ(GetCount(heap), start);
-        }
+    delete p;
+    ASSERT_EQ(GetCount(heap), start);
+    }
 
-        static void TestOperatorDeleteNothrowExplicit() {
-        LOG_TEST("TestOperatorDeleteNothrowExplicit");
-        Heap* heap = HeapFactory::GetDefaultHeap();
-        size_t start = GetCount(heap);
+    static void TestOperatorDeleteNothrowExplicit() {
+    LOG_TEST("TestOperatorDeleteNothrowExplicit");
+    Heap* heap = HeapFactory::GetDefaultHeap();
+    size_t start = GetCount(heap);
 
-        int* p = new (std::nothrow) int(7);
-        ASSERT_TRUE(p != nullptr);
+    int* p = new (std::nothrow) int(7);
+    ASSERT_TRUE(p != nullptr);
 
-    #if MEM_SENTRY_ENABLE
-        ASSERT_EQ(GetCount(heap), start + 1);
-    #endif
+#if MEM_SENTRY_ENABLE
+    ASSERT_EQ(GetCount(heap), start + 1);
+#endif
 
-        ::operator delete(p, std::nothrow);
+    ::operator delete(p, std::nothrow);
 
-        ASSERT_EQ(GetCount(heap), start);
-        }
+    ASSERT_EQ(GetCount(heap), start);
+    }
 
     static void TestInteractiveLeakReport() {
         LOG_TEST("TestInteractiveLeakReport");
@@ -595,6 +597,69 @@ private:
         
         ASSERT_EQ(GetCount(heap), 0);
         std::cout << "Cleaned up.\n";
+    }
+
+    static void TestMultiThreadedAllocations() {
+        LOG_TEST("TestMultiThreadedAllocations (Stress Test)");
+        Heap* heap = HeapFactory::GetDefaultHeap();
+        size_t startCount = GetCount(heap);
+        long long startTotal = GetTotal(heap);
+        
+        const int NUM_THREADS = 10;
+        const int ALLOCS_PER_THREAD = 1000;
+        
+        { // <- begin scope
+            std::vector<std::thread> threads;
+            std::atomic<bool> threadError(false);
+            // Lambda for worker threads
+            auto worker = [&]() {
+                std::vector<int*> ptrs;
+                ptrs.reserve(ALLOCS_PER_THREAD);
+    
+                try {
+                    // Phase 1: Rapid Allocation
+                    for (int i = 0; i < ALLOCS_PER_THREAD; ++i) {
+                        ptrs.push_back(new int(i));
+                    }
+    
+                    // Phase 2: Rapid Deallocation (in random order if we wanted, but LIFO is fine for stress)
+                    for (int* p : ptrs) {
+                        delete p;
+                    }
+                } catch (...) {
+                    threadError = true;
+                }
+            };
+    
+            // Launch threads
+            for (int i = 0; i < NUM_THREADS; ++i) {
+                threads.emplace_back(worker);
+            }
+    
+            // Wait for all threads to finish
+            for (auto& t : threads) {
+                if (t.joinable()) t.join();
+            }
+
+            ASSERT_TRUE(!threadError);
+        } // <--- END SCOPE: 'threads' vector is destroyed here.
+
+        // Verify Heap Integrity
+        // If locks failed, the linked list would be corrupted, likely causing a crash before this point.
+        // If locks worked but logic was flawed, counts wouldn't match.
+        
+        #if MEM_SENTRY_ENABLE
+        // Ensure we are back to exactly where we started
+        size_t finalCount = GetCount(heap);
+        long long finalTotal = GetTotal(heap);
+
+        if (finalCount != startCount) {
+             std::cerr << "Thread Race Detected! Expected Count: " << startCount 
+                       << " Got: " << finalCount << "\n";
+        }
+        ASSERT_EQ(finalCount, startCount);
+        ASSERT_EQ(finalTotal, startTotal);
+        #endif
     }
 };
 
