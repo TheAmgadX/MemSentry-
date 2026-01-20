@@ -18,7 +18,7 @@ namespace MEM_SENTRY::constants {
     /// @breif check if use defined MEM_SENTRY_ENABLE already.
     #ifndef MEM_SENTRY_ENABLE
         // default: enable only in debug mode 
-        #ifdef _DEBUG:
+        #ifdef _DEBUG
             #define MEM_SENTRY_ENABLE 1
         #else 
             #define MEM_SENTRY_ENABLE 0

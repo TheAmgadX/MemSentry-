@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <cstdint>
+#include <new>
 
 #include "mem_sentry/heap.h"
 #include "mem_sentry/alloc_header.h"
@@ -72,8 +73,22 @@ void* sentry_allocate(size_t size, MEM_SENTRY::heap::Heap *pHeap){
         size = 1;
     
     size_t total_requested_memory = size + sizeof(MEM_SENTRY::alloc_header::AllocHeader) + sizeof(int);
+    
+    void* ptr;
+    while ((ptr = malloc(total_requested_memory)) == nullptr){
+        std::new_handler nh = std::get_new_handler();
 
-    char *pMem = (char *)malloc(total_requested_memory);
+        if(nh){
+            nh();
+        } else {
+            break;
+        }
+    }
+
+    if(!ptr) 
+        return nullptr;
+
+    char* pMem = (char *)ptr;
 
     MEM_SENTRY::alloc_header::AllocHeader *pHeader = (MEM_SENTRY::alloc_header::AllocHeader *) pMem;
     
@@ -108,7 +123,21 @@ void* sentry_allocate_aligned(size_t size, size_t alignment, MEM_SENTRY::heap::H
     uint16_t header_size = sizeof(MEM_SENTRY::alloc_header::AllocHeader);
     size_t total_requested_memory = size + alignment + header_size + sizeof(int); // int for the signature at the end of data.
     
-    char *pOriginalMem = (char *) malloc(total_requested_memory);
+    void* ptr;
+    while ((ptr = malloc(total_requested_memory)) == nullptr){
+        std::new_handler nh = std::get_new_handler();
+
+        if(nh){
+            nh();
+        } else {
+            break;
+        }
+    }
+
+    if(!ptr) 
+        return nullptr;
+
+    char *pOriginalMem = (char *) ptr;
 
     uintptr_t rawAddr = (uintptr_t) pOriginalMem;
 
@@ -177,7 +206,13 @@ void sentry_deallocate(void *pMem){
 // --- Standard Scalar ---
 void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
 #if MEM_SENTRY_ENABLE
-    return sentry_allocate(size, pHeap);
+    void* ptr = sentry_allocate(size, pHeap);
+    
+    if(!ptr){
+        throw std::bad_alloc();
+    }
+
+    return ptr;
 #else
     return malloc(size);
 #endif
@@ -187,7 +222,7 @@ void* operator new(size_t size) {
     return ::operator new(size, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
 }    
 
-void operator delete (void *pMem) {
+void operator delete (void *pMem) noexcept {
 #if MEM_SENTRY_ENABLE
     sentry_deallocate(pMem);
 #else
@@ -200,7 +235,7 @@ void* operator new[](size_t size){
     return ::operator new(size, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
 }
 
-void operator delete[](void* pMem){
+void operator delete[](void* pMem) noexcept {
     ::operator delete(pMem);
 }
 
@@ -208,10 +243,16 @@ void operator delete[](void* pMem){
 void* operator new(size_t size, std::align_val_t alignment, MEM_SENTRY::heap::Heap *pHeap) {
     size_t alignment_size = calculate_aligned_memory_size(alignment);
 #if MEM_SENTRY_ENABLE
-    return sentry_allocate_aligned(size, alignment_size, pHeap);
+    void* ptr = sentry_allocate_aligned(size, alignment_size, pHeap);
+
+    if(!ptr){
+        throw std::bad_alloc();
+    }
+
+    return ptr;
 #else
     // normal aligned allocation.
-    return std::aligned_alloc(size, alignment_size);
+    return std::aligned_alloc(alignment_size, size);
 #endif
 }
 
@@ -219,7 +260,90 @@ void* operator new(size_t size, std::align_val_t alignment){
     return ::operator new(size, alignment, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
 }
 
+void  operator delete(void* pMem, std::align_val_t al) noexcept{
+#if MEM_SENTRY_ENABLE
+    sentry_deallocate(pMem);
+#else
+    free(pMem);
+#endif
+}
+
 // --- Aligned Array ---
 void* operator new[](size_t size, std::align_val_t alignment) {
     return ::operator new(size, alignment);
+}
+
+void operator delete[](void* pMem, std::align_val_t alignment) noexcept {
+    ::operator delete(pMem, alignment);
+}
+
+// ============================================================================
+// NOTHROW NEW OPERATORS (Return nullptr on failure)
+// ============================================================================
+
+void* operator new(std::size_t size, const std::nothrow_t& tag) noexcept {
+    if(size == 0)  
+        size = 1;
+#if MEM_SENTRY_ENABLE
+    return sentry_allocate(size, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
+#else
+    return malloc(size);
+#endif
+}
+
+void* operator new[](std::size_t size, const std::nothrow_t& tag) noexcept {
+    return ::operator new(size, tag);
+}
+
+void* operator new(std::size_t size, std::align_val_t al, const std::nothrow_t& tag) noexcept {
+    size_t alignment_size = calculate_aligned_memory_size(al);
+#if MEM_SENTRY_ENABLE
+    return sentry_allocate_aligned(size, alignment_size, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
+#else
+    return std::aligned_alloc(size, alignment_size);
+#endif
+}
+
+void* operator new[](std::size_t size, std::align_val_t al, const std::nothrow_t& tag) noexcept {
+    return ::operator new(size, al, tag);
+}
+
+// ============================================================================
+// NOTHROW DELETE OPERATORS
+// ============================================================================
+
+void operator delete(void* ptr, const std::nothrow_t& tag) noexcept {
+    ::operator delete(ptr);
+}
+
+void operator delete[](void* ptr, const std::nothrow_t& tag) noexcept {
+    ::operator delete[](ptr);
+}
+
+void operator delete(void* ptr, std::align_val_t al, const std::nothrow_t& tag) noexcept {
+    ::operator delete(ptr, al);
+}
+
+void operator delete[](void* ptr, std::align_val_t al, const std::nothrow_t& tag) noexcept {
+    ::operator delete[](ptr, al);
+}
+
+// ============================================================================
+// SIZED DELETE OPERATORS (C++14 optimization)
+// ============================================================================
+
+void operator delete(void* ptr, std::size_t sz) noexcept {
+    ::operator delete(ptr);
+}
+
+void operator delete[](void* ptr, std::size_t sz) noexcept {
+    ::operator delete(ptr);
+}
+
+void operator delete(void* ptr, std::size_t sz, std::align_val_t al) noexcept {
+    ::operator delete(ptr, al);
+}
+
+void operator delete[](void* ptr, std::size_t sz, std::align_val_t al) noexcept {
+    ::operator delete[](ptr, al);
 }
