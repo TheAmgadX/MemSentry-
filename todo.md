@@ -6,11 +6,11 @@
 
 - Double-Free Detection: Implement robust detection and error reporting for double-free attempts. [+]
 
-- Reporting Interface: Expose an interface with strategy pattern to support custom reporting for `heap->ReportMemory()`. []
+- Reporting Interface: Expose an interface with strategy pattern to support custom reporting for `heap->ReportMemory()`. [+]
 
 - Zero-Byte Handling: Ensure handling of zero-byte allocation requests. [+]
 
-- Hierarchical Heaps: Implement a hierarchical heap system using a graph-based representation. []
+- Hierarchical Heaps: Implement a hierarchical heap system using a graph-based representation. [+]
 
 - add all needed overridden `new`, `delete` operators to make sure the user won't allocate something out of the heap, also update the ISentry. [+]
 

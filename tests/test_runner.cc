@@ -115,6 +115,9 @@ public:
 
         TestMultiThreadedAllocations();
 
+        TestHeapHierarchy();
+        TestHeapHierarchyThreadSafety();
+
         std::cout << "\n=============================================\n";
         std::cout << "    \033[32mALL TESTS PASSED SUCCESSFULLY\033[0m\n";
         std::cout << "=============================================\n";
@@ -669,6 +672,137 @@ private:
         }
         ASSERT_EQ(finalCount, startCount);
         ASSERT_EQ(finalTotal, startTotal);
+        #endif
+    }
+
+    static void TestHeapHierarchy() {
+        LOG_TEST("TestHeapHierarchy (Graph Logic)");
+        
+        // 1. Create a cluster of heaps
+        Heap root("Root");
+        Heap childA("ChildA");
+        Heap childB("ChildB");
+        Heap isolated("Isolated");
+
+        root.SetReporter(&gConsoleReporter);
+        childA.SetReporter(&gConsoleReporter);
+        childB.SetReporter(&gConsoleReporter);
+
+        // 2. Allocate data distributed across them
+        // using the placement new syntax: new (&heap) Type(...)
+        int* pRoot  = new (&root) int(1);
+        int* pA     = new (&childA) int(2);
+        int* pB     = new (&childB) int(3);
+        int* pIso   = new (&isolated) int(4);
+
+        // 3. Build the Hierarchy
+        // Graph: ChildA <--> Root --> ChildB
+        HeapFactory::ConnectHeaps(&root, &childA); // Bidirectional
+        root.AddHeap(&childB);              // Directional (Root -> ChildB)
+
+        #if MEM_SENTRY_ENABLE
+        // 4. Verify Root sees everyone (Root + A + B = 3 allocations)
+        // DFS should visit Root, then A, then B.
+        size_t totalAlloc = root.CountAllocationsHH();
+        ASSERT_EQ(totalAlloc, 3);
+        
+        // Verify Memory Sum (3 * sizeof(int))
+        size_t totalBytes = root.GetTotalHH();
+        ASSERT_EQ(totalBytes, 3 * sizeof(int));
+
+        // 5. Verify ChildA sees Root and ChildB (because A -> Root -> B)
+        // Since it's bidirectional (A <-> Root), A can reach B through Root.
+        ASSERT_EQ(childA.CountAllocationsHH(), 3);
+
+        // 6. Verify ChildB sees NOTHING extra (because Root->ChildB is one-way)
+        // ChildB has no outgoing connections.
+        ASSERT_EQ(childB.CountAllocationsHH(), 1);
+
+        // 7. Verify Isolated heap is alone
+        ASSERT_EQ(isolated.CountAllocationsHH(), 1);
+        #endif
+
+        // Cleanup
+        delete pRoot;
+        delete pA;
+        delete pB;
+        delete pIso;
+    }
+
+    static void TestHeapHierarchyThreadSafety() {
+        LOG_TEST("TestHeapHierarchyThreadSafety (Deadlock Check)");
+        
+        Heap heapA("ThreadHeapA");
+        Heap heapB("ThreadHeapB");
+
+        // Attach Reporter so you can SEE the allocations
+        heapA.SetReporter(&gConsoleReporter);
+        heapB.SetReporter(&gConsoleReporter);
+        
+        // Connect them (A <-> B)
+        HeapFactory::ConnectHeaps(&heapA, &heapB); 
+
+        std::atomic<bool> running(true);
+        std::atomic<size_t> maxObservedCount(0);
+
+        // --- WORKER THREAD ---
+        // 1. Allocates a batch (fills the heap)
+        // 2. Deletes the batch (empties the heap)
+        std::thread worker([&]() {
+            // Pre-allocate vector storage to avoid noise from the vector itself
+            std::vector<int*> ptrs;
+            ptrs.reserve(100); 
+
+            while(running) {
+                // FILL: This will trigger 50 "Alloc" logs
+                for(int i = 0; i < 50; i++) {
+                    ptrs.push_back(new (&heapA) int(42));
+                }
+
+                // DRAIN: This will trigger 50 "Dealloc" logs
+                for(auto p : ptrs) {
+                    delete p;
+                }
+                ptrs.clear();
+
+                // Yield to let the Observer thread sneak in
+                std::this_thread::yield();
+            }
+        });
+
+        // --- OBSERVER THREAD ---
+        // Tries to traverse the graph while the worker is spamming Alloc/Dealloc
+        std::thread observer([&]() {
+            while(running) {
+                #if MEM_SENTRY_ENABLE
+                // This locks the Graph Topology (Static Mutex)
+                size_t count = heapA.CountAllocationsHH();
+                
+                size_t currentMax = maxObservedCount.load();
+                if(count > currentMax) {
+                    maxObservedCount.store(count);
+                }
+                #else
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                #endif
+            }
+        });
+
+        // Run for 100ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        running = false;
+        worker.join();
+        observer.join();
+
+        #if MEM_SENTRY_ENABLE
+        // 1. Integrity Check: Heap must be empty at the end
+        ASSERT_EQ(heapA.CountAllocations(), 0);
+        ASSERT_EQ(heapB.CountAllocations(), 0);
+
+        // 2. Liveness Check: Did we actually see the heap growing?
+        std::cout << "Max Concurrent Allocations Observed: " << maxObservedCount << "\n";
+        ASSERT_TRUE(maxObservedCount > 0);
         #endif
     }
 };

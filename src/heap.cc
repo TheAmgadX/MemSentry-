@@ -1,4 +1,6 @@
 #include <iostream>
+#include <unordered_set>
+#include <mutex>
 
 #include "mem_sentry/heap.h"
 #include "mem_sentry/alloc_header.h"
@@ -134,4 +136,59 @@ void MEM_SENTRY::heap::Heap::ReportMemory(int bookMark1, int bookMark2){
         }
         tmp = tmp->p_Next;
     }
+}
+
+std::mutex MEM_SENTRY::heap::Heap::m_graphMutex;
+
+void MEM_SENTRY::heap::Heap::AddHeap(Heap* heap) {
+    std::lock_guard<std::mutex> lock(Heap::m_graphMutex);
+
+    if (heap) {
+        m_AdjHeaps.push_back(heap);
+    }
+}
+
+void MEM_SENTRY::heap::Heap::dfs(Heap* currentHeap, std::unordered_set<Heap*>& visited, size_t& val,
+    const std::function<void(Heap*, size_t&)>& func) {
+
+    if(visited.count(currentHeap)){
+        return;
+    }
+
+    visited.insert(currentHeap);
+    func(currentHeap, val);
+
+    for(auto heap : currentHeap->m_AdjHeaps){
+        dfs(heap, visited, val, func);
+    }
+}
+
+size_t MEM_SENTRY::heap::Heap::GetTotalHH(){
+    std::lock_guard<std::mutex> lock(Heap::m_graphMutex);
+    std::unordered_set<Heap*> visited;
+
+    size_t total = 0;
+
+    const auto lamda = [](Heap* heap, size_t& val){
+        val += heap->GetTotal();
+    };
+
+    dfs(this, visited, total, lamda);
+
+    return total;
+}
+
+size_t MEM_SENTRY::heap::Heap::CountAllocationsHH(){
+    std::lock_guard<std::mutex> lock(Heap::m_graphMutex);
+    std::unordered_set<Heap*> visited;
+
+    size_t total = 0;
+
+    const auto lamda = [](Heap* heap, size_t& val){
+        val += heap->CountAllocations();
+    };
+
+    dfs(this, visited, total, lamda);
+
+    return total;
 }
