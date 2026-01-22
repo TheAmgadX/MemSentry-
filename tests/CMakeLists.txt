@@ -10,4 +10,4 @@ target_include_directories(mem_sentry_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 
-set(MEM_SENTRY_ENABLE ON CACHE BOOL "" FORCE)
+# set(MEM_SENTRY_ENABLE ON CACHE BOOL "" FORCE)

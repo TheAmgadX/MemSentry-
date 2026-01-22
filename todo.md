@@ -1,6 +1,6 @@
 # TODO
 
-- Thread Safety: Add multi-threading support in the Heap class using `std::mutex` for list management and `std::atomic` for lock-free Id generation. []
+- Thread Safety: Add multi-threading support in the Heap class using `std::mutex` for list management and `std::atomic` for lock-free Id generation. [+]
 
 - Operator Overloads: Override array allocation operators `new[]`, `delete[]`, `alignas()`. [+]
 

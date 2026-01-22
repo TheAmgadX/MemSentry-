@@ -23,6 +23,7 @@ add_library(
     MemSentry STATIC
     src/mem_sentry.cc
     src/heap.cc
+    src/console_reporter.cc
 )
 
 target_include_directories(MemSentry PUBLIC 

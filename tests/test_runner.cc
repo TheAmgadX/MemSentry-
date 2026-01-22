@@ -19,9 +19,13 @@
 #include "mem_sentry/sentry.h"
 #include "mem_sentry/alloc_header.h"
 
+#include "mem_sentry/reporter.h"
+
 using MEM_SENTRY::heap::Heap;
 using MEM_SENTRY::heap::HeapFactory;
 using MEM_SENTRY::alloc_header::AllocHeader;
+
+static MEM_SENTRY::reporter::ConsoleReporter gConsoleReporter;
 
 // ----------------------------------------------------------------------------
 // HELPER MACROS
@@ -180,6 +184,8 @@ private:
         LOG_TEST("TestSentryHeaps (ISentry)");
         Heap physicsHeap("PhysicsHeap");
         Heap audioHeap("AudioHeap");
+        physicsHeap.SetReporter(&gConsoleReporter);
+        audioHeap.SetReporter(&gConsoleReporter);
 
         PhysicsObject::setHeap(&physicsHeap);
         AudioObject::setHeap(&audioHeap);
@@ -325,6 +331,8 @@ private:
         LOG_TEST("TestHeapSwitching");
         Heap heapA("HeapA");
         Heap heapB("HeapB");
+        heapA.SetReporter(&gConsoleReporter);
+        heapB.SetReporter(&gConsoleReporter);
 
         PhysicsObject::setHeap(&heapA);
         PhysicsObject* objA = new PhysicsObject(); 
@@ -474,6 +482,7 @@ private:
     static void TestDirectHeapOperator() {
         LOG_TEST("TestDirectHeapOperator (new(heapPtr) T)");
         Heap explicitHeap("ExplicitHeap");
+        explicitHeap.SetReporter(&gConsoleReporter);
         
         // This validates the override: operator new(size_t, MEM_SENTRY::heap::Heap*)
         int* p = new (&explicitHeap) int(555);
@@ -513,6 +522,7 @@ private:
     static void TestAlignedHeapOperator() {
     LOG_TEST("TestAlignedHeapOperator (new(alignment, Heap*))");
     Heap explicitHeap("ExplicitAlignedHeap");
+    explicitHeap.SetReporter(&gConsoleReporter);
 
     size_t start = GetCount(&explicitHeap);
 
@@ -664,6 +674,9 @@ private:
 };
 
 int main() {
+    // Assign console reporter to default heap so tests can log via interface
+    HeapFactory::GetDefaultHeap()->SetReporter(&gConsoleReporter);
+
     XTests::run_all();
     return 0;
 }

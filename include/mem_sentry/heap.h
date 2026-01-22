@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include "mem_sentry/alloc_header.h"
+#include "mem_sentry/reporter.h"
 
 namespace MEM_SENTRY::heap {       
     
@@ -34,18 +35,14 @@ namespace MEM_SENTRY::heap {
         /** @brief Pointer to the last allocation in the tracking list. */
         alloc_header::AllocHeader* p_TailList;
 
+        reporter::IReporter* p_Reporter;
+        
         /**
          * @brief linked list mutex.
          * 
          * used to make sure the heap list is thread safe.
          */
         std::mutex m_llMutex;
-
-        /**
-         * @brief Internal helper to print details of a specific allocation.
-         * @param alloc Pointer to the allocation header to print.
-         */
-        void printAlloc(alloc_header::AllocHeader* alloc, int totalMemoryToThisPoint);
         
         /**
          * @brief Internal helper to append a node to the linked list.
@@ -75,8 +72,13 @@ namespace MEM_SENTRY::heap {
 
             p_HeadList = nullptr;
             p_TailList = nullptr;
+            p_Reporter = nullptr;
         }
         
+        void SetReporter(reporter::IReporter* reporter){
+            p_Reporter = reporter;
+        }
+
         /**
          * @brief Get the name of this heap.
          * @return const char* The name string.
