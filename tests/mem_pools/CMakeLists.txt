@@ -21,3 +21,15 @@ target_link_libraries(test_ringpool
 target_include_directories(test_ringpool PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
+
+add_executable(test_chain
+    test_chain.cc
+)
+
+target_link_libraries(test_chain
+    PRIVATE MemSentry
+)
+
+target_include_directories(test_chain PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+)

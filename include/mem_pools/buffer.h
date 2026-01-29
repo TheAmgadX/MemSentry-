@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include <concepts>
+#include "mem_pools/concepts.h"
 
 namespace MEM_SENTRY::mem_pool {
     
@@ -9,8 +9,7 @@ namespace MEM_SENTRY::mem_pool {
      * This ensures the pool manages single objects, std::array, or complex classes 
      * without the overhead of tracking array counts.
      */
-    template<typename T>
-    concept NotRawArray = !std::is_array_v<T>;
+
 
     /**
      * @brief Buffer storage wrapper (dynamic or inline)
@@ -55,7 +54,7 @@ namespace MEM_SENTRY::mem_pool {
      * - Inline:  `Buffer<MyType, 64, false> b(arg1);` — constructs `MyType`
      *   inline inside the `Buffer` object.
      */
-    template<NotRawArray T, size_t alignment, bool isDynamic = true>
+    template<MEM_SENTRY::concepts::NotRawArray T, size_t alignment, bool isDynamic = true>
     struct Buffer {
         T* p_Buffer;
 
@@ -84,7 +83,7 @@ namespace MEM_SENTRY::mem_pool {
      * This is useful when a single object or fixed-size inline storage
      * is desired instead of a heap allocation for better cache locality.
      */
-    template<NotRawArray T, size_t alignment>
+    template<MEM_SENTRY::concepts::NotRawArray T, size_t alignment>
     struct alignas(alignment) Buffer<T, alignment, false> {
         T m_Buffer;
 

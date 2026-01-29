@@ -66,7 +66,7 @@ struct alignas(MEM_SENTRY::constants::CACHE_LINE_SIZE) CacheAlignedAtomic {
  * - Caller owns buffers (empty):
  *   `RingPool<MyType> pool(true, 8); // then push(Buffer* ownedByCaller)`
 */
-template<NotRawArray T, size_t alignment = 0, bool isDynamic = true>
+template<MEM_SENTRY::concepts::NotRawArray T, size_t alignment = 0, bool isDynamic = true>
 class RingPool {
 private:
     /**
@@ -341,7 +341,7 @@ public:
 };
 }
 
-template<MEM_SENTRY::mem_pool::NotRawArray  T, size_t alignment, bool isDynamic>
+template<MEM_SENTRY::concepts::NotRawArray  T, size_t alignment, bool isDynamic>
 size_t MEM_SENTRY::mem_pool::RingPool<T, alignment, isDynamic>::currentSize() {
     size_t currentRead  = m_ReadIndex.m_Value.load(std::memory_order_acquire);
     size_t currentWrite = m_WriteIndex.m_Value.load(std::memory_order_acquire);
@@ -349,7 +349,7 @@ size_t MEM_SENTRY::mem_pool::RingPool<T, alignment, isDynamic>::currentSize() {
     return getAvailableBuffers(currentWrite, currentRead);
 }
 
-template<MEM_SENTRY::mem_pool::NotRawArray T, size_t alignment, bool isDynamic>
+template<MEM_SENTRY::concepts::NotRawArray T, size_t alignment, bool isDynamic>
 bool MEM_SENTRY::mem_pool::RingPool<T, alignment, isDynamic>::push(MEM_SENTRY::mem_pool::Buffer<T, alignment, isDynamic> *buffer) {
     if(!buffer){
         return false;
@@ -369,7 +369,7 @@ bool MEM_SENTRY::mem_pool::RingPool<T, alignment, isDynamic>::push(MEM_SENTRY::m
     return true;
 }
 
-template<MEM_SENTRY::mem_pool::NotRawArray  T, size_t alignment, bool isDynamic>
+template<MEM_SENTRY::concepts::NotRawArray  T, size_t alignment, bool isDynamic>
 MEM_SENTRY::mem_pool::Buffer<T, alignment, isDynamic>* MEM_SENTRY::mem_pool::RingPool<T, alignment, isDynamic>::pop() {
     size_t currentWrite = m_WriteIndex.m_Value.load(std::memory_order_acquire);
     
