@@ -25,11 +25,10 @@ graph TD
         RingPool
         Buffer
     end
-    Heap -- allocates from --> PoolChain
     ISentry -- allocates from --> Heap
-    Heap -- reports to --> Reporter
-    MyUserClass --|> ISentry
-    PoolChain --> ChainNode
+    Heap -- reports by --> Reporter
+    MyUserClass --|> --> ISentry
+    PoolChain --> owns --> ChainNode
     ChainNode -- owns --> RingPool
     RingPool -- owns --> Buffer
 ```
