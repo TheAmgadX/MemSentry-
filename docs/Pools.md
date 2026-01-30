@@ -61,7 +61,7 @@ classDiagram
     class Buffer~T~ {
     }
     PoolChain~T~ o-- ChainNode~T~
-    PoolChain~T~ o-- RingPool~T~
+    ChainNode~T~ o-- RingPool~T~
     RingPool~T~ o-- Buffer~T~
 ```
 

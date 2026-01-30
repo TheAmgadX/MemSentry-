@@ -8,6 +8,10 @@ This document provides an overview of the main API components in the MemoryManag
 - [ISentry](ISentry.md)
 - [Hierarchy](Hierarchy.md)
 - [Pools](Pools.md)
+- [PoolChain](Pools.md)
+- [RingPool](Pools.md)
+- [ChainNode](Pools.md)
+- [Buffer](Pools.md)
 
 ---
 
@@ -25,8 +29,13 @@ CRTP base class for automatic memory tracking of user-defined types. Ensures all
 ### Hierarchy
 Describes the relationships between heaps, supporting hierarchical memory usage queries and graph-based reporting.
 
+
 ### Pools
-Lock-free, real-time-safe memory pools for efficient buffer management, including ring buffers and chain-of-pools for scalable allocation.
+Lock-free, real-time-safe memory pools for efficient buffer management, including:
+- `PoolChain`: Growable chain of pools for scalable allocation.
+- `RingPool`: Lock-free, single-producer/single-consumer ring buffer.
+- `ChainNode`: Node in the chain, owns a `RingPool`.
+- `Buffer`: Storage wrapper for a single object.
 
 ---
 
@@ -60,9 +69,33 @@ classDiagram
         +operator new()
         +operator delete()
     }
+    class MyUserClass {
+    }
+    MyUserClass --|> ISentry~T~
+    class PoolChain~T~ {
+        +push()
+        +pop()
+        +addPool()
+    }
+    class ChainNode~T~ {
+        +m_Pool : RingPool~T~*
+        +m_Next : ChainNode~T~*
+    }
+    class RingPool~T~ {
+        +push()
+        +pop()
+        +queueSize()
+        +currentSize()
+        +isValid()
+    }
+    class Buffer~T~ {
+    }
     Heap o-- IReporter : uses
     ISentry ..> Heap : allocates from
     ConsoleReporter --|> IReporter
+    PoolChain~T~ o-- ChainNode~T~
+    ChainNode~T~ o-- RingPool~T~
+    RingPool~T~ o-- Buffer~T~
 ```
 
 ---

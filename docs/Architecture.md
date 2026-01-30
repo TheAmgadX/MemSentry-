@@ -17,18 +17,21 @@ graph TD
         Heap
         ISentry
         Reporter
+        MyUserClass
     end
     subgraph Pooling
-        RingPool
         PoolChain
         ChainNode
+        RingPool
+        Buffer
     end
     Heap -- allocates from --> PoolChain
     ISentry -- allocates from --> Heap
     Heap -- reports to --> Reporter
-    PoolChain -- owns --> RingPool
-    RingPool -- owns --> Buffer
+    MyUserClass --|> ISentry
     PoolChain -- links --> ChainNode
+    ChainNode -- owns --> RingPool
+    RingPool -- owns --> Buffer
 ```
 
 ## Components
