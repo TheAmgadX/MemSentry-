@@ -3,14 +3,6 @@
 #include "mem_pools/concepts.h"
 
 namespace MEM_SENTRY::mem_pool {
-    
-    /**
-     * @brief Concept to prevent raw C-style arrays (e.g., int[]) from being used.
-     * This ensures the pool manages single objects, std::array, or complex classes 
-     * without the overhead of tracking array counts.
-     */
-
-
     /**
      * @brief Buffer storage wrapper (dynamic or inline)
      *

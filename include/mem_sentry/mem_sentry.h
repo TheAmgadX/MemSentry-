@@ -11,6 +11,8 @@ namespace MEM_SENTRY::heap {
 // --------------------------------------------------------------------------
 void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap);
 void* operator new(size_t size, std::align_val_t alignment, MEM_SENTRY::heap::Heap* heap);
+void* operator new[](size_t size, MEM_SENTRY::heap::Heap *pHeap);
+void* operator new[](size_t size, std::align_val_t alignment, MEM_SENTRY::heap::Heap* pHeap);
 
 // --------------------------------------------------------------------------
 // 2. Standard Replaceable Allocation Operators

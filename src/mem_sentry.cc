@@ -218,6 +218,10 @@ void* operator new(size_t size, MEM_SENTRY::heap::Heap *pHeap) {
 #endif
 }
 
+void* operator new[](size_t size, MEM_SENTRY::heap::Heap *pHeap){
+    return ::operator new(size, pHeap);
+}
+
 void* operator new(size_t size) {
     return ::operator new(size, MEM_SENTRY::heap::HeapFactory::GetDefaultHeap());
 }    
@@ -271,6 +275,10 @@ void  operator delete(void* pMem, std::align_val_t al) noexcept{
 // --- Aligned Array ---
 void* operator new[](size_t size, std::align_val_t alignment) {
     return ::operator new(size, alignment);
+}
+
+void* operator new[](size_t size, std::align_val_t alignment, MEM_SENTRY::heap::Heap* pHeap){
+    return ::operator new(size, alignment, pHeap);
 }
 
 void operator delete[](void* pMem, std::align_val_t alignment) noexcept {
