@@ -42,13 +42,6 @@ All pool types use C++ templates for flexibility and type safety:
 ## Class Diagram
 ```mermaid
 classDiagram
-    class RingPool~T~ {
-        +push()
-        +pop()
-        +queueSize()
-        +currentSize()
-        +isValid()
-    }
     class PoolChain~T~ {
         +push()
         +pop()
@@ -58,8 +51,18 @@ classDiagram
         +m_Pool : RingPool~T~*
         +m_Next : ChainNode~T~*
     }
-    PoolChain~T~ o-- ChainNode~T~ : owns
-    ChainNode~T~ o-- RingPool~T~ : owns
+    class RingPool~T~ {
+        +push()
+        +pop()
+        +queueSize()
+        +currentSize()
+        +isValid()
+    }
+    class Buffer~T~ {
+    }
+    PoolChain~T~ -- "links" --> ChainNode~T~
+    PoolChain~T~ o-- RingPool~T~ : owns
+    RingPool~T~ o-- Buffer~T~ : owns
 ```
 
 
