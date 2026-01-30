@@ -27,8 +27,8 @@ graph TD
     end
     ISentry -- allocates from --> Heap
     Heap -- reports by --> Reporter
-    MyUserClass --|> --> ISentry
-    PoolChain --> owns --> ChainNode
+    MyUserClass -- inherits --> ISentry
+    PoolChain -- owns --> ChainNode
     ChainNode -- owns --> RingPool
     RingPool -- owns --> Buffer
 ```
