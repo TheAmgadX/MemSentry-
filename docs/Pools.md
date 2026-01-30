@@ -60,9 +60,9 @@ classDiagram
     }
     class Buffer~T~ {
     }
-    PoolChain~T~ -- "links" --> ChainNode~T~
-    PoolChain~T~ o-- RingPool~T~ : owns
-    RingPool~T~ o-- Buffer~T~ : owns
+    PoolChain~T~ o-- ChainNode~T~
+    PoolChain~T~ o-- RingPool~T~
+    RingPool~T~ o-- Buffer~T~
 ```
 
 
