@@ -1,155 +1,59 @@
-# 🛡️ MemSentry
+# MemSentry
 
-**A surgical memory tracking and management system for C++.**
-
-MemSentry is a lightweight library that intercepts memory allocations to organize objects into specific **Heaps**, track usage in real-time, and detect memory leaks upon shutdown.
-
-## ✨ Features
-
-- **Per-Class Heap Assignment:** Route different classes (e.g., `Audio`, `Physics`, `AI`) to their own dedicated memory heaps.
-- **Automatic Leak Detection:** Reports total bytes remaining in every heap.
-- **Zero-boilerplate Interface:** Simply inherit from `ISentry<T>` and you are done.
-
-## 🚀 Usage
-
-### 1. Basic Usage (Global Tracking)
-
-MemSentry automatically overrides the global `new` and `delete`. Any standard allocation is tracked in the `DefaultHeap` automatically.
-
-```cpp
-// No setup required!
-int* numbers = new int[100];
-delete[] numbers; // Automatically tracked and checked for leaks
-```
-
-### 2. Advanced usage
-
-#### 1. Define Your Class
-
-Inherit from `MEM_SENTRY::sentry::ISentry<YourClass>`. This automatically hooks up the memory manager.
-
-```cpp
-#include "mem_sentry/sentry.h"
-
-// Pass the class name into the template (CRTP)
-class Enemy : public MEM_SENTRY::sentry::ISentry<Enemy> {
-public:
-    Enemy() { /* ... */ }
-    ~Enemy() { /* ... */ }
-};
-```
-
-#### 2. Configure Heaps in `main()`
-
-Create your heaps and assign them to your classes before allocation.
-
-```cpp
-#include "mem_sentry/heap.h"
-#include "enemy.h"
-
-int main() {
-    using namespace MEM_SENTRY::heap;
-
-    // 1. Create Heaps
-    Heap* enemyHeap = new Heap("Enemy_Heap");
-
-    // 2. Bind Class to Heap
-    Enemy::setHeap(enemyHeap);
-
-    // 3. Allocate (Automatically goes to Enemy_Heap)
-    Enemy* grunt = new Enemy();
-
-    // 4. Cleanup
-    delete grunt;      // Tracks freeing
-    delete enemyHeap;  // Reports leaks if any
-
-    return 0;
-}
-```
-
-### 📊 Sample Output
-
-MemSentry provides detailed logging of allocation and deallocation events.
-
-```text
------------------
-Allocating 104 bytes on heap: DefaultHeap
-Current total size is: 104 bytes on heap: DefaultHeap
------------------
------------------
-Allocating 136 bytes on heap: Enemy_Heap
-Current total size is: 136 bytes on heap: Enemy_Heap
------------------
-Enemy Constructor
------------------
-Allocating 8 bytes on heap: DefaultHeap
-Current total size is: 112 bytes on heap: DefaultHeap
------------------
-Enemy Destructor
------------------
-Freeing 8 bytes from heap: DefaultHeap
-Current total size is: 104 bytes on heap: DefaultHeap
------------------
------------------
-Freeing 136 bytes from heap: Enemy_Heap
-Current total size is: 0 bytes on heap: Enemy_Heap
------------------
------------------
-Freeing 104 bytes from heap: DefaultHeap
-Current total size is: 0 bytes on heap: DefaultHeap
------------------
-```
-
-## MemSentry Integration Guide
-
-### 1. How to Integrate
-
-Add **MemSentry** to your project by including it in your `CMakeLists.txt`.
-
-#### CMake
-
-```cmake
-# 1. Add the subdirectory (ensure the folder name matches)
-add_subdirectory(mem_sentry)
-
-# 2. Link your executable to the library
-add_executable(MyGame main.cpp)
-target_link_libraries(MyGame PRIVATE MemSentry)
-```
+**MemSentry** is a high-performance C++20 memory management library designed to provide transparency and control over your application's memory usage. It features advanced tracking, leak detection, custom heap hierarchies, and lock-free memory pools.
 
 ---
 
-### 2. Configuration (The Remote Control)
+## ✨ Key Features
 
-You can control whether MemSentry is active or disabled (zero-overhead) without changing your code.
-
-#### Option A: The "Temporary" Way (Command Line)
-
-Use this when you want to quickly switch modes for a specific build.
-
-Enable (Default):
-
-```bash
-cmake ..
-```
-
-Disable (Zero Overhead):
-
-```bash
-cmake .. -DMEM_SENTRY_ENABLE=OFF
-```
+* **Global Tracking**: Overrides global `new` and `delete` operators to automatically track all memory allocations.
+* **Custom Heaps**: Organize memory into named Heaps (e.g., "Physics", "AI") and connect them in a hierarchy.
+* **Leak Detection**: Snapshot memory states and detect leaks between specific execution points.
+* **Lock-Free Pools**: High-performance *SPSC* (Single-Producer Single-Consumer) ***Ring Pool*** and dynamically growing pools ***Chain Pool*** designed for low-latency applications.
+* **Strategy Pattern Reporting**: Inject custom reporters (Console, File, Network) to handle memory events.
+* **Seamless Integration**: The `ISentry` interface allows you to easily hook your custom classes into the tracking system with minimal boilerplate.
+* **Production Ready**: Easily compile the entire library out of your build for release using `MEM_SENTRY_ENABLE`.
 
 ---
 
-#### Option B: The "Permanent" Way (CMake)
+## 📦 Installation
 
-Use this if you want to hard-code the setting for your project (e.g. recommended OFF for Release builds).
+MemSentry is an **Interface Library** that compiles directly into your project.
 
-Put this before `add_subdirectory(mem_sentry)`:
+> For detailed installation options, including `.deb` package generation, see the ***[Installation Guide](./examples/README.md#%F0%9F%93%A6-1-installation)***.
 
-```cmake
-# Force MemSentry OFF
-set(MEM_SENTRY_ENABLE OFF CACHE BOOL "" FORCE)
+---
 
-add_subdirectory(mem_sentry)
-```
+## 📚 Documentation & Usage
+
+We provide a comprehensive set of examples and an integration guide to help you get started.
+
+👉 **[Read the Integration Guide & Examples](./examples/README.md)**
+
+Inside the **[`examples/`](./examples/)** folder, you will learn:
+
+* **How to Link**: CMake configuration for your own projects.
+* **How to Code**: Critical rules for including headers to avoid crashes.
+* **Demos**:
+    * `example_allocation_reporting.cc`: Basic tracking.
+    * `example_memory_pools.cc`: Using lock-free pools.
+    * `example_hierarchical_graph.cc`: Managing heap hierarchies.
+
+#### See ***[Documentation](./docs)***
+
+---
+
+## 📂 Project Structure
+
+* **`include/mem_sentry/`**: Core memory tracking headers (Heap, Sentry, Allocator).
+* **`include/mem_pools/`**: Lock-free pool and buffer headers.
+* **`src/`**: Library source code (compiled into your target).
+* **`examples/`**: Reference implementations and the **Main User Guide**.
+* **`tests/`**: Unit tests for library stability.
+* **`docs/`**: Documentation and Class Diagrams.
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

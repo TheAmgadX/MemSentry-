@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # These allow the User to toggle features on/off in THEIR build.
 # ------------------------------------------------------------------------------
 option(MEM_SENTRY_ENABLE "Enable memory tracking features" ON)
-option(MEM_SENTRY_BUILD_EXAMPLES "Build example applications" ON)
+option(MEM_SENTRY_BUILD_EXAMPLES "Build examples" ON)
 option(MEM_SENTRY_BUILD_TESTS "Build unit tests" ON)
 
 # ==============================================================================
@@ -99,18 +99,35 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/MemSentryConfig.cmake"
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/MemSentryTargets.cmake\")\n"
+)
+
 # Install the config version file
 install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/MemSentryConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/MemSentryConfigVersion.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/MemSentry
 )
 
 # ==============================================================================
-# SUBDIRECTORIES (Tests & Examples)
+# SUBDIRECTORIES (Tests)
 # ==============================================================================
 if(MEM_SENTRY_BUILD_EXAMPLES)
-    add_executable(application examples/main.cc)
-    target_link_libraries(application PRIVATE MemSentry)
+    # 1. Find all .cc files in the examples folder
+    file(GLOB EXAMPLE_SOURCES "examples/*.cc")
+
+    # 2. Loop through them and create an executable for each one
+    foreach(source_file ${EXAMPLE_SOURCES})
+        # Get the file name without extension (e.g., "example_strategy_pattern")
+        get_filename_component(exe_name ${source_file} NAME_WE)
+
+        # Create the executable
+        add_executable(${exe_name} ${source_file})
+
+        # Link your library to it
+        target_link_libraries(${exe_name} PRIVATE MemSentry)
+    endforeach()
 endif()
 
 if(MEM_SENTRY_BUILD_TESTS)
